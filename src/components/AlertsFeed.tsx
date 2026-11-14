@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Alert, Level, SessionSummary } from '../api'
-import { ago, cx, LEVEL } from '../lib/format'
-import { caseNo } from '../lib/format'
+import { ago, caseNo, cx, LEVEL, TONE } from '../lib/format'
 
 const ORDER: Level[] = ['critical', 'high', 'medium', 'info']
 
@@ -31,50 +30,52 @@ export function AlertsFeed({
         ),
     [alerts, showInfo],
   )
-  const info = alerts.filter((a) => a.level === 'info').length
+  const count = (l: Level) => alerts.filter((a) => a.level === l).length
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-baseline gap-3 px-6 pt-5 pb-3">
-        <h2 className="text-[22px] font-medium tracking-tight">Avisos</h2>
-        <span className="label text-ink-3">{list.length}</span>
-        <label className="label ml-auto flex cursor-pointer items-center gap-1.5 text-ink-3">
-          <input
-            type="checkbox"
-            checked={showInfo}
-            onChange={(e) => setShowInfo(e.target.checked)}
-            className="accent-[var(--ink)]"
-          />
-          info ({info})
-        </label>
+      <div className="flex items-center gap-2 px-5 pt-5 pb-3">
+        <h2 className="text-[20px] font-medium tracking-tight">Alertas</h2>
+        {(['critical', 'high', 'medium'] as Level[]).map((l) =>
+          count(l) ? (
+            <span
+              key={l}
+              title={LEVEL[l].word}
+              className={cx('rounded-[4px] px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums', TONE[LEVEL[l].tone].soft, TONE[LEVEL[l].tone].text)}
+            >
+              {count(l)}
+            </span>
+          ) : null,
+        )}
+        <button
+          onClick={() => setShowInfo((x) => !x)}
+          className={cx('label ml-auto rounded-md px-2 py-1', showInfo ? 'bg-ink text-paper' : 'text-ink-3 hover:bg-paper-2')}
+        >
+          info {count('info')}
+        </button>
       </div>
-      <ol className="flex-1 overflow-y-auto border-t border-rule">
-        {!list.length && <li className="px-6 py-5 text-ink-3 italic">Nada que reportar.</li>}
+      <ol className="flex-1 space-y-1 overflow-y-auto px-2 pb-4">
+        {!list.length && <li className="px-3 py-4 text-ink-3 italic">Nada que reportar.</li>}
         {list.map((a) => {
           const s = sessions[a.sid]
+          const tone = TONE[LEVEL[a.level].tone]
           return (
-            <li key={a.id} className="border-b border-rule">
+            <li key={a.id} className="group relative">
               <button
                 onClick={() => onOpen(a)}
                 className={cx(
-                  'block w-full px-6 py-3.5 text-left transition-colors hover:bg-paper-2',
-                  a.level === 'critical' && 'bg-red/[0.07]',
+                  'block w-full rounded-lg py-2.5 pr-3 pl-4 text-left transition-colors hover:bg-paper-2',
+                  a.level === 'critical' && 'bg-alarm/[0.07]',
                 )}
               >
-                <div className="flex items-baseline gap-2">
-                  <span className={cx('label font-semibold', LEVEL[a.level].tone)}>{LEVEL[a.level].word}</span>
-                  <span className="label truncate text-ink-3 normal-case">
-                    {caseNo(numbers[a.sid] ?? 0)} · {s?.user ?? '?'}
-                    {a.seq !== null ? ` · #${a.seq}` : ''}
-                  </span>
-                  <span className="label ml-auto shrink-0 text-ink-3 normal-case">{ago(a.ts, now)}</span>
-                </div>
-                <p className={cx('mt-1 text-[16px] leading-snug break-words', a.level === 'critical' && 'text-red')}>
+                <span className={cx('absolute top-2.5 bottom-2.5 left-1.5 w-[3px] rounded-full', tone.bg)} />
+                <p className={cx('truncate text-[15px] leading-snug', a.level === 'critical' && 'text-alarm')} title={a.detail ? `${a.title}\n${a.detail}` : a.title}>
                   {a.title}
                 </p>
-                {a.detail && (
-                  <p className="mt-1 line-clamp-2 font-mono text-[11px] break-all text-ink-3">{a.detail}</p>
-                )}
+                <p className="mt-0.5 font-mono text-[10.5px] text-ink-3">
+                  {s?.user ?? '?'} · {caseNo(numbers[a.sid] ?? 0)}
+                  {a.seq !== null ? ` · #${a.seq}` : ''} · {ago(a.ts, now)}
+                </p>
               </button>
             </li>
           )

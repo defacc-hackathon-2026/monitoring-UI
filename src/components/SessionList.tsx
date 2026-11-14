@@ -1,6 +1,6 @@
 import type { SessionSummary } from '../api'
 import { ago, caseNo, cx } from '../lib/format'
-import { IconLink, IconSeal, Stamp } from './Marks'
+import { IconBroken, IconLink, IconSeal, VerdictBar } from './Marks'
 
 export function SessionList({
   sessions,
@@ -18,49 +18,44 @@ export function SessionList({
   if (!sessions.length)
     return (
       <p className="px-5 py-6 text-[15px] leading-snug text-ink-2 italic">
-        Todavía no hay bitácoras. Pasa una sesión por el gateway, o arranca{' '}
-        <code className="font-mono text-xs not-italic">owit monitor --demo --live</code>.
+        Sin bitácoras todavía. Prueba <code className="font-mono text-xs not-italic">owit monitor --demo --live</code>.
       </p>
     )
   return (
-    <ol>
+    <ol className="space-y-1 px-2">
       {sessions.map((s) => {
-        const injected = s.verdicts.TOOL_INJECTED ?? 0
         const fail = s.integrity.status === 'fail'
         const on = selected === s.sid
         return (
-          <li key={s.sid} className="border-b border-rule">
+          <li key={s.sid}>
             <button
               onClick={() => onSelect(s.sid)}
+              title={`${caseNo(numbers[s.sid] ?? 0)} · ${s.sid} · ${s.agent.name ?? '?'} → ${s.upstream.profile ?? '?'}`}
               className={cx(
-                'relative block w-full px-5 py-3.5 text-left transition-colors',
-                on ? 'bg-card' : 'hover:bg-paper-2',
+                'block w-full rounded-lg px-3 py-2.5 text-left transition-colors',
+                on ? 'bg-card shadow-[0_0_0_1px_var(--rule)]' : 'hover:bg-paper-2',
+                fail && 'shadow-[inset_3px_0_0_var(--alarm)]',
               )}
             >
-              {on && <span className="absolute inset-y-0 left-0 w-[3px] bg-ink" />}
-              <div className="flex items-baseline gap-2">
-                <span className="label text-ink-3">{caseNo(numbers[s.sid] ?? 0)}</span>
-                {!s.ended && <span className="label text-seal">● en curso</span>}
-                <span className="label ml-auto text-ink-3 normal-case">{ago(s.last_ts, now)}</span>
+              <div className="flex items-center gap-2">
+                <span className={cx('text-[17px] leading-tight font-medium', fail && 'text-alarm')}>
+                  {s.user ?? 'desconocido'}
+                </span>
+                {!s.ended && <span className="size-1.5 animate-pulse rounded-full bg-user" title="en curso" />}
+                <span className="ml-auto flex items-center gap-2">
+                  <span className="font-mono text-[10.5px] text-ink-3">{ago(s.last_ts, now)}</span>
+                  {fail ? (
+                    <IconBroken className="size-4 text-alarm" />
+                  ) : s.integrity.status === 'ok' ? (
+                    <IconSeal className="size-4 text-user" title="íntegra y sellada" />
+                  ) : (
+                    <IconLink className="size-4 text-ink-3" />
+                  )}
+                </span>
               </div>
-              <div className="mt-0.5 flex items-center gap-2">
-                <span className="text-[19px] leading-tight font-medium">{s.user ?? 'desconocido'}</span>
-                {fail ? (
-                  <Stamp size="sm" className="ml-auto">
-                    alterada
-                  </Stamp>
-                ) : s.integrity.status === 'ok' ? (
-                  <IconSeal className="ml-auto size-4 text-seal" title="cadena íntegra y sellada" />
-                ) : (
-                  <IconLink className="ml-auto size-4 text-ink-3" />
-                )}
-              </div>
-              <div className="mt-1 font-mono text-[11px] text-ink-3">
-                {s.counts.tool_calls} acci{s.counts.tool_calls === 1 ? 'ón' : 'ones'}
-                {injected > 0 && <span className="text-red"> · {injected} inyectada{injected > 1 ? 's' : ''}</span>}
-                {s.counts.text_unsigned > 0 && <span className="text-ochre"> · sin firma</span>}
-                {' · '}
-                {s.agent.name ?? '?'}
+              <div className="mt-2 flex items-center gap-2">
+                <VerdictBar verdicts={s.verdicts} total={s.counts.tool_calls} className="flex-1" />
+                <span className="font-mono text-[10.5px] text-ink-3 tabular-nums">{s.counts.tool_calls}</span>
               </div>
             </button>
           </li>

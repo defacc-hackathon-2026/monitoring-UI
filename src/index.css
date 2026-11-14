@@ -3,41 +3,41 @@
 /* Tema: data-theme="light" | "dark" en <html> (lo fija index.html antes de pintar; el botón lo cambia). */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
-/* Identidad: un expediente. Papel y tinta; el color solo aparece cuando significa algo.
-   seal  = lo que dijo el usuario (y su firma)
-   ochre = lo que trajo una herramienta
+/* Neutros limpios y cuatro colores con significado:
+   user  = lo que dijo el usuario (y su firma)
+   tool  = lo que trajo una herramienta
    model = lo que produjo el modelo
-   red   = inyectado, alterado, roto */
+   alarm = inyectado, alterado, roto          (warn = ambiguo / sin firma) */
 :root {
-  --paper: #f3efe6;
-  --paper-2: #e9e3d6;
-  --card: #fbf8f2;
-  --ink: #1c1a16;
-  --ink-2: #5a554b;
-  --ink-3: #8c8576;
-  --rule: #d6cebd;
-  --seal: #1f5b3b;
-  --ochre: #a1530c;
-  --model: #4f5a66;
-  --red: #b42318;
-  --mustard: #8a6a08;
-  --mark: #f6d365;
+  --paper: #f7f7f5;
+  --paper-2: #efefec;
+  --card: #ffffff;
+  --ink: #141414;
+  --ink-2: #57575c;
+  --ink-3: #94949a;
+  --rule: #e4e4e0;
+  --user: #16794a;
+  --tool: #2f5fd0;
+  --model: #6b7280;
+  --alarm: #d03a2f;
+  --warn: #b7791f;
+  --mark: #fde68a;
 }
 
 [data-theme='dark'] {
-  --paper: #13120f;
-  --paper-2: #1b1a16;
-  --card: #1e1d19;
-  --ink: #ede7da;
-  --ink-2: #aaa294;
-  --ink-3: #6f695d;
-  --rule: #34312a;
-  --seal: #6cc597;
-  --ochre: #e59a50;
-  --model: #9fb0c2;
-  --red: #f2675b;
-  --mustard: #dcb64a;
-  --mark: #6b5310;
+  --paper: #0f0f10;
+  --paper-2: #18181a;
+  --card: #1c1c1f;
+  --ink: #f0f0ee;
+  --ink-2: #a9a9ae;
+  --ink-3: #66666c;
+  --rule: #2a2a2e;
+  --user: #4cc38a;
+  --tool: #7c9cff;
+  --model: #9ca3af;
+  --alarm: #ff6b5f;
+  --warn: #e8b04e;
+  --mark: #5c4a0e;
 }
 
 @theme inline {
@@ -52,34 +52,20 @@
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
   --color-rule: var(--rule);
-  --color-seal: var(--seal);
-  --color-ochre: var(--ochre);
+  --color-user: var(--user);
+  --color-tool: var(--tool);
   --color-model: var(--model);
-  --color-red: var(--red);
-  --color-mustard: var(--mustard);
+  --color-alarm: var(--alarm);
+  --color-warn: var(--warn);
   --color-mark: var(--mark);
 }
 
 @keyframes arrive {
   from {
-    background-color: color-mix(in oklab, var(--ochre) 18%, transparent);
+    background-color: color-mix(in oklab, var(--tool) 14%, transparent);
   }
   to {
     background-color: transparent;
-  }
-}
-
-@keyframes stamp {
-  0% {
-    transform: rotate(-7deg) scale(1.6);
-    opacity: 0;
-  }
-  60% {
-    transform: rotate(-7deg) scale(0.96);
-    opacity: 1;
-  }
-  100% {
-    transform: rotate(-7deg) scale(1);
   }
 }
 
@@ -104,6 +90,13 @@ body {
   font-size: 10.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
 }
 
 ::selection {

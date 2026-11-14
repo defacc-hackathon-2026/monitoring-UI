@@ -51,11 +51,11 @@ function useTheme() {
   return { theme, toggle }
 }
 
-const CONN: Record<Conn, { text: string; tone: string }> = {
-  connecting: { text: 'conectando', tone: 'text-ink-3' },
-  live: { text: '● en vivo', tone: 'text-seal' },
-  reconnecting: { text: '○ reconectando', tone: 'text-ochre animate-pulse' },
-  error: { text: '○ sin conexión con owit monitor', tone: 'text-red' },
+const CONN: Record<Conn, { text: string; dot: string; tone: string }> = {
+  connecting: { text: 'conectando', dot: 'bg-ink-3', tone: 'text-ink-3' },
+  live: { text: 'en vivo', dot: 'bg-user animate-pulse', tone: 'text-user' },
+  reconnecting: { text: 'reconectando', dot: 'bg-warn animate-pulse', tone: 'text-warn' },
+  error: { text: 'sin conexión', dot: 'bg-alarm', tone: 'text-alarm' },
 }
 
 export default function App() {
@@ -109,27 +109,38 @@ export default function App() {
 
   return (
     <div className="flex h-dvh flex-col bg-paper text-ink">
-      <header className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-ink px-6 pt-4 pb-3">
-        <div className="flex items-baseline gap-3">
-          <span className="text-[26px] leading-none font-semibold tracking-tight">Open Witness</span>
-          <span className="label text-ink-3">monitor · solo lectura</span>
+      <header className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-rule px-6 py-3">
+        <div
+          className="flex items-baseline gap-2.5"
+          title={state.health ? `solo lectura · ${state.health.data} · llave del gateway: ${state.health.pubkey_source}` : ''}
+        >
+          <span className="text-[24px] leading-none font-semibold tracking-tight">Open Witness</span>
+          <span className="label text-ink-3">monitor</span>
         </div>
-        <span className={cx('label', CONN[state.conn].tone)}>{CONN[state.conn].text}</span>
-        <span className="font-mono text-[11px] text-ink-3">
-          {sessions.length} expedientes
-          {injected > 0 && <span className="text-red"> · {injected} acciones inyectadas</span>}
-          {failing > 0 && <span className="font-semibold text-red"> · {failing} bitácora{failing > 1 ? 's' : ''} alterada{failing > 1 ? 's' : ''}</span>}
+        <span className={cx('label inline-flex items-center gap-1.5', CONN[state.conn].tone)}>
+          <span className={cx('size-1.5 rounded-full', CONN[state.conn].dot)} />
+          {CONN[state.conn].text}
         </span>
-        <div className="ml-auto flex items-center gap-4">
-          {state.health?.no_content && <span className="label text-ochre">sin contenido</span>}
-          {state.health && (
-            <span className="label hidden text-ink-3 normal-case xl:inline" title={state.health.data}>
-              llave del gateway: {state.health.pubkey_source}
+        <div className="flex items-center gap-1.5">
+          <span className="rounded-[4px] bg-paper-2 px-1.5 py-0.5 font-mono text-[11px] text-ink-2 tabular-nums" title="expedientes">
+            {sessions.length} sesiones
+          </span>
+          {injected > 0 && (
+            <span className="rounded-[4px] bg-alarm/12 px-1.5 py-0.5 font-mono text-[11px] text-alarm tabular-nums">
+              {injected} inyectadas
             </span>
           )}
+          {failing > 0 && (
+            <span className="rounded-[4px] bg-alarm px-1.5 py-0.5 font-mono text-[11px] text-paper tabular-nums">
+              {failing} alterada{failing > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          {state.health?.no_content && <span className="label text-warn">sin contenido</span>}
           <button
             onClick={toggle}
-            className="p-1 text-ink-3 hover:text-ink"
+            className="rounded-md p-1.5 text-ink-3 hover:bg-paper-2 hover:text-ink"
             title={theme === 'dark' ? 'papel' : 'carbón'}
             aria-label="cambiar tema"
           >
@@ -138,12 +149,12 @@ export default function App() {
         </div>
       </header>
       {state.error && (
-        <div className="border-b border-red/40 bg-red/10 px-6 py-1.5 font-mono text-xs text-red">{state.error}</div>
+        <div className="border-b border-alarm/40 bg-alarm/10 px-6 py-1.5 font-mono text-xs text-alarm">{state.error}</div>
       )}
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[17rem_minmax(0,1fr)_21rem] 2xl:grid-cols-[19rem_minmax(0,1fr)_25rem]">
         <nav className="min-h-0 overflow-y-auto border-r border-rule">
-          <h2 className="label px-5 pt-5 pb-2 text-ink-3">expedientes</h2>
+          <h2 className="label px-5 pt-5 pb-2 text-ink-3">sesiones</h2>
           <SessionList sessions={sessions} numbers={numbers} selected={sid} onSelect={(s) => go(s)} now={now} />
         </nav>
 

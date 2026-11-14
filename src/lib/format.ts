@@ -43,8 +43,8 @@ export function sourceOf(prov: string): Source {
 }
 
 export const SOURCE = {
-  user: { text: 'text-seal', bg: 'bg-seal', soft: 'bg-seal/10', border: 'border-seal', stroke: 'var(--seal)' },
-  tool: { text: 'text-ochre', bg: 'bg-ochre', soft: 'bg-ochre/10', border: 'border-ochre', stroke: 'var(--ochre)' },
+  user: { text: 'text-user', bg: 'bg-user', soft: 'bg-user/10', border: 'border-user', stroke: 'var(--user)' },
+  tool: { text: 'text-tool', bg: 'bg-tool', soft: 'bg-tool/10', border: 'border-tool', stroke: 'var(--tool)' },
   model: { text: 'text-model', bg: 'bg-model', soft: 'bg-model/10', border: 'border-model', stroke: 'var(--model)' },
   other: { text: 'text-ink-3', bg: 'bg-ink-3', soft: 'bg-ink-3/10', border: 'border-ink-3', stroke: 'var(--ink-3)' },
 } as const
@@ -70,12 +70,37 @@ export function provName(prov: string): string {
 
 // ------------------------------------------------------------------ veredictos
 
-export const VERDICT_TONE: Record<Label, string> = {
-  USER_INSTRUCTED: 'text-seal',
-  TOOL_INJECTED: 'text-red',
-  AMBIGUOUS: 'text-mustard',
-  MODEL_INITIATIVE: 'text-model',
-  UNVERIFIABLE: 'text-red',
+export type Tone = 'user' | 'tool' | 'model' | 'alarm' | 'warn' | 'muted'
+
+export const TONE: Record<Tone, { text: string; bg: string; soft: string; border: string; stroke: string }> = {
+  user: { text: 'text-user', bg: 'bg-user', soft: 'bg-user/12', border: 'border-user', stroke: 'var(--user)' },
+  tool: { text: 'text-tool', bg: 'bg-tool', soft: 'bg-tool/12', border: 'border-tool', stroke: 'var(--tool)' },
+  model: { text: 'text-model', bg: 'bg-model', soft: 'bg-model/12', border: 'border-model', stroke: 'var(--model)' },
+  alarm: { text: 'text-alarm', bg: 'bg-alarm', soft: 'bg-alarm/12', border: 'border-alarm', stroke: 'var(--alarm)' },
+  warn: { text: 'text-warn', bg: 'bg-warn', soft: 'bg-warn/14', border: 'border-warn', stroke: 'var(--warn)' },
+  muted: { text: 'text-ink-3', bg: 'bg-ink-3', soft: 'bg-ink-3/12', border: 'border-ink-3', stroke: 'var(--ink-3)' },
+}
+
+export function verdictTone(v: { label: Label; non_repudiable: boolean }): Tone {
+  switch (v.label) {
+    case 'USER_INSTRUCTED':
+      return v.non_repudiable ? 'user' : 'warn'
+    case 'TOOL_INJECTED':
+    case 'UNVERIFIABLE':
+      return 'alarm'
+    case 'AMBIGUOUS':
+      return 'warn'
+    case 'MODEL_INITIATIVE':
+      return 'model'
+  }
+}
+
+export const LABEL_TONE: Record<Label, Tone> = {
+  USER_INSTRUCTED: 'user',
+  TOOL_INJECTED: 'alarm',
+  AMBIGUOUS: 'warn',
+  MODEL_INITIATIVE: 'model',
+  UNVERIFIABLE: 'alarm',
 }
 
 export const VERDICT_WORD: Record<Label, string> = {
@@ -86,11 +111,11 @@ export const VERDICT_WORD: Record<Label, string> = {
   UNVERIFIABLE: 'no verificable',
 }
 
-export const LEVEL: Record<Level, { word: string; tone: string }> = {
-  critical: { word: 'crítico', tone: 'text-red' },
-  high: { word: 'alto', tone: 'text-ochre' },
-  medium: { word: 'medio', tone: 'text-mustard' },
-  info: { word: 'info', tone: 'text-ink-3' },
+export const LEVEL: Record<Level, { word: string; tone: Tone }> = {
+  critical: { word: 'crítico', tone: 'alarm' },
+  high: { word: 'alto', tone: 'alarm' },
+  medium: { word: 'medio', tone: 'warn' },
+  info: { word: 'info', tone: 'muted' },
 }
 
 // ------------------------------------------------------------------ frases en castellano llano
