@@ -109,6 +109,27 @@ export interface ActionDetail {
   context: ContextItem[]
 }
 
+export interface Stats {
+  sessions: number
+  open: number
+  actions: number
+  by_label: Partial<Record<Label, number>>
+  partial: number
+  non_repudiable: number
+  by_source: Record<string, number>
+  by_user: Record<string, Partial<Record<Label, number>>>
+  by_rule: Record<string, number>
+  by_tool: Record<string, Partial<Record<Label, number>>>
+  arg_sources: Partial<Record<'user_signed' | 'user_unsigned' | 'tool' | 'model' | 'nowhere', number>>
+  integrity: Partial<Record<'ok' | 'pending_anchor' | 'fail' | 'unknown', number>>
+  alerts: Partial<Record<Level, number>>
+  alert_types: Record<string, number>
+  prompts: { signed: number; unsigned: number }
+  entries_by_kind: Record<string, number>
+  timeline: { bucket_s: number; series: { t: string; counts: Partial<Record<Label, number>> }[] }
+  verify: { p50: number; p95: number; max: number } | null
+}
+
 export interface Health {
   ok: boolean
   data: string
@@ -165,6 +186,7 @@ export const api = {
   verify: (sid: string) => get<Record<string, unknown> & { badge: IntegrityBadge }>(`/api/sessions/${sid}/verify`),
   action: (sid: string, seq: number) => get<ActionDetail>(`/api/sessions/${sid}/actions/${seq}`),
   alerts: () => get<Alert[]>('/api/alerts'),
+  stats: () => get<Stats>('/api/stats'),
   eventsUrl: () => {
     const t = token()
     return `/api/events${t ? `?token=${encodeURIComponent(t)}` : ''}`

@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Alert } from './api'
 import { ActionView } from './components/ActionView'
 import { AlertsFeed } from './components/AlertsFeed'
 import { IconMoon, IconSun } from './components/Marks'
 import { SessionList } from './components/SessionList'
 import { SessionHeader, Timeline } from './components/SessionView'
+import { StatsView } from './components/StatsView'
 import { caseNo, cx } from './lib/format'
 import { useMonitor, type Conn } from './store'
 
-// Ruta en el hash para compartir un enlace a una acción: #/s/<sid>/a/<seq>
-function parseHash(): { sid: string | null; seq: number | null } {
+// Ruta en el hash: #/s/<sid>/a/<seq> (sesión y acción) o #/stats (estadísticas)
+function parseHash(): { sid: string | null; seq: number | null; tab: 'sessions' | 'stats' } {
+  if (location.hash.startsWith('#/stats')) return { sid: null, seq: null, tab: 'stats' }
   const m = location.hash.match(/^#\/s\/([^/]+)(?:\/a\/(\d+))?/)
-  return { sid: m?.[1] ?? null, seq: m?.[2] ? Number(m[2]) : null }
+  return { sid: m?.[1] ?? null, seq: m?.[2] ? Number(m[2]) : null, tab: 'sessions' }
 }
 
 function useRoute() {
@@ -60,7 +62,12 @@ const CONN: Record<Conn, { text: string; dot: string; tone: string }> = {
 
 export default function App() {
   const { state, openSession, reloadAll } = useMonitor()
-  const { sid, seq, go } = useRoute()
+  const { sid, seq, tab, go } = useRoute()
+  // al volver de Estadísticas, se reabre la última sesión vista
+  const lastSid = useRef<string | null>(null)
+  useEffect(() => {
+    if (sid) lastSid.current = sid
+  }, [sid])
   const now = useNow()
   const { theme, toggle } = useTheme()
 
@@ -88,8 +95,8 @@ export default function App() {
   }, [sid, state.entries, openSession])
 
   useEffect(() => {
-    if (!sid && sessions.length) go(sessions[0].sid)
-  }, [sid, sessions, go])
+    if (tab === 'sessions' && !sid && sessions.length) go(sessions[0].sid)
+  }, [tab, sid, sessions, go])
 
   const current = sid ? state.sessions[sid] : undefined
   const entries = sid ? state.entries[sid] : undefined
@@ -117,6 +124,25 @@ export default function App() {
           <span className="text-[24px] leading-none font-semibold tracking-tight">Open Witness</span>
           <span className="label text-ink-3">monitor</span>
         </div>
+        <nav className="flex items-center gap-1 rounded-lg bg-paper-2 p-0.5">
+          {(
+            [
+              ['sessions', 'Sesiones'],
+              ['stats', 'Estadísticas'],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => (k === 'stats' ? (location.hash = '#/stats') : go(lastSid.current ?? sessions[0]?.sid ?? null))}
+              className={cx(
+                'rounded-md px-3 py-1 text-[14px] transition-colors',
+                tab === k ? 'bg-card text-ink shadow-[0_0_0_1px_var(--rule)]' : 'text-ink-3 hover:text-ink',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
         <span className={cx('label inline-flex items-center gap-1.5', CONN[state.conn].tone)}>
           <span className={cx('size-1.5 rounded-full', CONN[state.conn].dot)} />
           {CONN[state.conn].text}
@@ -152,6 +178,11 @@ export default function App() {
         <div className="border-b border-alarm/40 bg-alarm/10 px-6 py-1.5 font-mono text-xs text-alarm">{state.error}</div>
       )}
 
+      {tab === 'stats' ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <StatsView />
+        </div>
+      ) : (
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[17rem_minmax(0,1fr)_21rem] 2xl:grid-cols-[19rem_minmax(0,1fr)_25rem]">
         <nav className="min-h-0 overflow-y-auto border-r border-rule">
           <h2 className="label px-5 pt-5 pb-2 text-ink-3">sesiones</h2>
@@ -186,6 +217,7 @@ export default function App() {
           <AlertsFeed alerts={alerts} sessions={state.sessions} numbers={numbers} now={now} onOpen={openAlert} />
         </aside>
       </div>
+      )}
 
       {sid && seq !== null && (
         <ActionView

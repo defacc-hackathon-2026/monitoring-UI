@@ -22,6 +22,13 @@
   --alarm: #d03a2f;
   --warn: #b7791f;
   --mark: #fde68a;
+  /* colores de gráficos: validados con dataviz/validate_palette.js (claro, superficie #ffffff) */
+  --c-user: #16794a;
+  --c-warn: #b98a00;
+  --c-tool: #2f5fd0;
+  --c-alarm: #d03a2f;
+  --c-model: #8256d0;
+  --c-none: #a3a3a8;
 }
 
 [data-theme='dark'] {
@@ -38,6 +45,13 @@
   --alarm: #ff6b5f;
   --warn: #e8b04e;
   --mark: #5c4a0e;
+  /* validados en oscuro sobre #1c1c1f (verde↔ámbar en la banda 6–8: llevan hueco de 2px, leyenda y tooltip) */
+  --c-user: #2fa06c;
+  --c-warn: #bf8a14;
+  --c-tool: #6b8cf0;
+  --c-alarm: #f05a4f;
+  --c-model: #9a7ae6;
+  --c-none: #5c5c62;
 }
 
 @theme inline {

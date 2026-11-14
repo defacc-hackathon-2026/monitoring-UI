@@ -22,6 +22,11 @@ tokens de sesión: es el papel del auditor).
 - **Alertas**: bitácora que no verifica (crítica), acción atribuida a una herramienta, herramienta quitada por su
   manifiesto o denegada por el hook, anomalías, `history_mismatch` y texto sin firma (info).
 
+- **Estadísticas** (pestaña aparte, `#/stats`): porcentaje de acciones inyectadas, reparto de veredictos, acciones en
+  el tiempo por veredicto, origen de las inyecciones, de dónde salieron los argumentos sensibles, veredictos por
+  usuario y por herramienta, qué regla decidió, integridad de las bitácoras y alertas por tipo. Cada gráfico tiene
+  tooltip y su tabla en "ver tabla". Los colores de los gráficos están validados para daltonismo en claro y oscuro.
+
 La atribución en vivo es **provisional**: solo reglas, nunca el juez LLM, y pasa a `UNVERIFIABLE` si después falla la
 verificación de la bitácora.
 
