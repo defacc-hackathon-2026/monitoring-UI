@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react'
 import type { Alert, Level, SessionSummary } from '../api'
 import { ago, cx, LEVEL } from '../lib/format'
+import { caseNo } from '../lib/format'
 
 const ORDER: Level[] = ['critical', 'high', 'medium', 'info']
 
 export function AlertsFeed({
   alerts,
   sessions,
+  numbers,
   now,
   onOpen,
 }: {
   alerts: Alert[]
   sessions: Record<string, SessionSummary>
+  numbers: Record<string, number>
   now: number
   onOpen: (a: Alert) => void
 }) {
@@ -20,64 +23,63 @@ export function AlertsFeed({
     () =>
       alerts
         .filter((a) => showInfo || a.level !== 'info')
-        .sort((a, b) => {
-          const byLevel = ORDER.indexOf(a.level) - ORDER.indexOf(b.level)
-          if (a.level === 'critical' || b.level === 'critical') return byLevel || (b.ts ?? '').localeCompare(a.ts ?? '')
-          return (b.ts ?? '').localeCompare(a.ts ?? '') || byLevel
-        }),
+        .sort(
+          (a, b) =>
+            Number(b.level === 'critical') - Number(a.level === 'critical') ||
+            (b.ts ?? '').localeCompare(a.ts ?? '') ||
+            ORDER.indexOf(a.level) - ORDER.indexOf(b.level),
+        ),
     [alerts, showInfo],
   )
-  const counts = Object.fromEntries(ORDER.map((l) => [l, alerts.filter((a) => a.level === l).length])) as Record<
-    Level,
-    number
-  >
+  const info = alerts.filter((a) => a.level === 'info').length
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-        <h3 className="text-sm font-semibold">Alertas</h3>
-        <div className="flex gap-2 text-[11px]">
-          {ORDER.slice(0, 3).map((l) => (
-            <span key={l} className={cx('tabular-nums', LEVEL[l].cls)}>
-              {counts[l]} {LEVEL[l].text}
-            </span>
-          ))}
-        </div>
-        <label className="ml-auto flex items-center gap-1 text-[11px] text-zinc-500">
-          <input type="checkbox" checked={showInfo} onChange={(e) => setShowInfo(e.target.checked)} />
-          info ({counts.info})
+      <div className="flex items-baseline gap-3 px-6 pt-5 pb-3">
+        <h2 className="text-[22px] font-medium tracking-tight">Avisos</h2>
+        <span className="label text-ink-3">{list.length}</span>
+        <label className="label ml-auto flex cursor-pointer items-center gap-1.5 text-ink-3">
+          <input
+            type="checkbox"
+            checked={showInfo}
+            onChange={(e) => setShowInfo(e.target.checked)}
+            className="accent-[var(--ink)]"
+          />
+          info ({info})
         </label>
       </div>
-      <ul className="flex-1 divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-800">
-        {!list.length && <li className="p-4 text-sm text-zinc-500">Sin alertas.</li>}
+      <ol className="flex-1 overflow-y-auto border-t border-rule">
+        {!list.length && <li className="px-6 py-5 text-ink-3 italic">Nada que reportar.</li>}
         {list.map((a) => {
           const s = sessions[a.sid]
           return (
-            <li key={a.id}>
+            <li key={a.id} className="border-b border-rule">
               <button
                 onClick={() => onOpen(a)}
                 className={cx(
-                  'w-full px-4 py-2.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-900',
-                  a.level === 'critical' && 'bg-red-500/10',
+                  'block w-full px-6 py-3.5 text-left transition-colors hover:bg-paper-2',
+                  a.level === 'critical' && 'bg-red/[0.07]',
                 )}
               >
-                <div className="flex items-center gap-1.5">
-                  <span className={cx('size-2 shrink-0 rounded-full', LEVEL[a.level].dot)} />
-                  <span className={cx('text-[11px] font-semibold uppercase', LEVEL[a.level].cls)}>
-                    {LEVEL[a.level].text}
+                <div className="flex items-baseline gap-2">
+                  <span className={cx('label font-semibold', LEVEL[a.level].tone)}>{LEVEL[a.level].word}</span>
+                  <span className="label truncate text-ink-3 normal-case">
+                    {caseNo(numbers[a.sid] ?? 0)} · {s?.user ?? '?'}
+                    {a.seq !== null ? ` · #${a.seq}` : ''}
                   </span>
-                  <span className="truncate text-[11px] text-zinc-500">
-                    {s?.user ?? '?'} · seq {a.seq ?? '—'}
-                  </span>
-                  <span className="ml-auto shrink-0 text-[11px] text-zinc-400">{ago(a.ts, now)}</span>
+                  <span className="label ml-auto shrink-0 text-ink-3 normal-case">{ago(a.ts, now)}</span>
                 </div>
-                <div className="mt-0.5 text-sm font-medium break-all">{a.title}</div>
-                {a.detail && <div className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{a.detail}</div>}
+                <p className={cx('mt-1 text-[16px] leading-snug break-words', a.level === 'critical' && 'text-red')}>
+                  {a.title}
+                </p>
+                {a.detail && (
+                  <p className="mt-1 line-clamp-2 font-mono text-[11px] break-all text-ink-3">{a.detail}</p>
+                )}
               </button>
             </li>
           )
         })}
-      </ul>
+      </ol>
     </div>
   )
 }

@@ -1,89 +1,71 @@
 import type { SessionSummary } from '../api'
-import { ago, cx } from '../lib/format'
-import { IntegrityBadge } from './Badges'
+import { ago, caseNo, cx } from '../lib/format'
+import { IconLink, IconSeal, Stamp } from './Marks'
 
 export function SessionList({
   sessions,
+  numbers,
   selected,
   onSelect,
   now,
 }: {
   sessions: SessionSummary[]
+  numbers: Record<string, number>
   selected: string | null
   onSelect: (sid: string) => void
   now: number
 }) {
   if (!sessions.length)
     return (
-      <div className="p-6 text-sm text-zinc-500">
-        No hay bitácoras en <code className="font-mono">data/ledger/</code> todavía. Arranca una sesión a través del
-        gateway, o prueba <code className="font-mono">owit monitor --demo --live</code>.
-      </div>
+      <p className="px-5 py-6 text-[15px] leading-snug text-ink-2 italic">
+        Todavía no hay bitácoras. Pasa una sesión por el gateway, o arranca{' '}
+        <code className="font-mono text-xs not-italic">owit monitor --demo --live</code>.
+      </p>
     )
   return (
-    <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+    <ol>
       {sessions.map((s) => {
-        const active = !s.ended
         const injected = s.verdicts.TOOL_INJECTED ?? 0
-        const hot = s.alerts.critical + s.alerts.high
+        const fail = s.integrity.status === 'fail'
+        const on = selected === s.sid
         return (
-          <li key={s.sid}>
+          <li key={s.sid} className="border-b border-rule">
             <button
               onClick={() => onSelect(s.sid)}
               className={cx(
-                'w-full px-4 py-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900',
-                selected === s.sid && 'bg-zinc-100 dark:bg-zinc-900',
-                s.integrity.status === 'fail' && 'border-l-4 border-red-600',
+                'relative block w-full px-5 py-3.5 text-left transition-colors',
+                on ? 'bg-card' : 'hover:bg-paper-2',
               )}
             >
-              <div className="flex items-center gap-2">
-                <span
-                  className={cx(
-                    'grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold uppercase',
-                    s.user === 'mallory'
-                      ? 'bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-100'
-                      : 'bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100',
-                  )}
-                >
-                  {(s.user ?? '?').slice(0, 1)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 text-sm font-semibold">
-                    <span className="truncate">{s.user ?? 'desconocido'}</span>
-                    {active && (
-                      <span className="relative flex size-2" title="sesión abierta">
-                        <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-                      </span>
-                    )}
-                    <span className="ml-auto shrink-0 text-xs font-normal text-zinc-500">{ago(s.last_ts, now)}</span>
-                  </div>
-                  <div className="truncate text-xs text-zinc-500">
-                    {s.agent.name ?? '?'} {s.agent.version ?? ''} · {s.upstream.profile ?? '?'} ·{' '}
-                    <span className="font-mono">{s.sid.slice(0, 14)}</span>
-                  </div>
-                </div>
+              {on && <span className="absolute inset-y-0 left-0 w-[3px] bg-ink" />}
+              <div className="flex items-baseline gap-2">
+                <span className="label text-ink-3">{caseNo(numbers[s.sid] ?? 0)}</span>
+                {!s.ended && <span className="label text-seal">● en curso</span>}
+                <span className="label ml-auto text-ink-3 normal-case">{ago(s.last_ts, now)}</span>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-9">
-                <IntegrityBadge b={s.integrity} />
-                {injected > 0 && (
-                  <span className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    {injected} INYECTADO
-                  </span>
+              <div className="mt-0.5 flex items-center gap-2">
+                <span className="text-[19px] leading-tight font-medium">{s.user ?? 'desconocido'}</span>
+                {fail ? (
+                  <Stamp size="sm" className="ml-auto">
+                    alterada
+                  </Stamp>
+                ) : s.integrity.status === 'ok' ? (
+                  <IconSeal className="ml-auto size-4 text-seal" title="cadena íntegra y sellada" />
+                ) : (
+                  <IconLink className="ml-auto size-4 text-ink-3" />
                 )}
-                {hot > 0 && (
-                  <span className="rounded bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 dark:text-orange-300">
-                    {hot} alerta{hot > 1 ? 's' : ''}
-                  </span>
-                )}
-                <span className="text-[11px] text-zinc-500">
-                  {s.entries} entradas · {s.counts.tool_calls} acciones
-                </span>
+              </div>
+              <div className="mt-1 font-mono text-[11px] text-ink-3">
+                {s.counts.tool_calls} acci{s.counts.tool_calls === 1 ? 'ón' : 'ones'}
+                {injected > 0 && <span className="text-red"> · {injected} inyectada{injected > 1 ? 's' : ''}</span>}
+                {s.counts.text_unsigned > 0 && <span className="text-ochre"> · sin firma</span>}
+                {' · '}
+                {s.agent.name ?? '?'}
               </div>
             </button>
           </li>
         )
       })}
-    </ul>
+    </ol>
   )
 }

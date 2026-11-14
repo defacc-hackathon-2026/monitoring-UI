@@ -1,23 +1,112 @@
 @import 'tailwindcss';
 
-@theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+/* Tema: data-theme="light" | "dark" en <html> (lo fija index.html antes de pintar; el botón lo cambia). */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Identidad: un expediente. Papel y tinta; el color solo aparece cuando significa algo.
+   seal  = lo que dijo el usuario (y su firma)
+   ochre = lo que trajo una herramienta
+   model = lo que produjo el modelo
+   red   = inyectado, alterado, roto */
+:root {
+  --paper: #f3efe6;
+  --paper-2: #e9e3d6;
+  --card: #fbf8f2;
+  --ink: #1c1a16;
+  --ink-2: #5a554b;
+  --ink-3: #8c8576;
+  --rule: #d6cebd;
+  --seal: #1f5b3b;
+  --ochre: #a1530c;
+  --model: #4f5a66;
+  --red: #b42318;
+  --mustard: #8a6a08;
+  --mark: #f6d365;
 }
 
-@keyframes flash {
+[data-theme='dark'] {
+  --paper: #13120f;
+  --paper-2: #1b1a16;
+  --card: #1e1d19;
+  --ink: #ede7da;
+  --ink-2: #aaa294;
+  --ink-3: #6f695d;
+  --rule: #34312a;
+  --seal: #6cc597;
+  --ochre: #e59a50;
+  --model: #9fb0c2;
+  --red: #f2675b;
+  --mustard: #dcb64a;
+  --mark: #6b5310;
+}
+
+@theme inline {
+  --font-serif: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+  --font-sans: var(--font-serif);
+
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-seal: var(--seal);
+  --color-ochre: var(--ochre);
+  --color-model: var(--model);
+  --color-red: var(--red);
+  --color-mustard: var(--mustard);
+  --color-mark: var(--mark);
+}
+
+@keyframes arrive {
   from {
-    background-color: rgb(250 204 21 / 0.28);
+    background-color: color-mix(in oklab, var(--ochre) 18%, transparent);
   }
   to {
     background-color: transparent;
   }
 }
 
+@keyframes stamp {
+  0% {
+    transform: rotate(-7deg) scale(1.6);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-7deg) scale(0.96);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-7deg) scale(1);
+  }
+}
+
 html {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+html[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* etiquetas del registro: versalitas en mono */
+.label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+::selection {
+  background: var(--mark);
+  color: var(--ink);
 }

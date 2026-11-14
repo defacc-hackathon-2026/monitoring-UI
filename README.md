@@ -25,6 +25,27 @@ tokens de sesión: es el papel del auditor).
 La atribución en vivo es **provisional**: solo reglas, nunca el juez LLM, y pasa a `UNVERIFIABLE` si después falla la
 verificación de la bitácora.
 
+## Diseño
+
+La interfaz es un **expediente**: papel y tinta (tema claro) o carbón (oscuro), Newsreader para lo que se lee y
+IBM Plex Mono para lo que se registra (hashes, etiquetas, metadatos). El color solo aparece cuando significa algo:
+
+| Color | Significa |
+|---|---|
+| verde sello | lo que dijo el usuario, y su firma |
+| ocre | lo que trajo una herramienta |
+| grafito | lo que produjo el modelo |
+| rojo | inyectado, alterado, roto |
+
+- Cada sesión es un expediente numerado por orden de llegada.
+- La línea de tiempo es la **cadena**: cada eslabón en el carril de quien habla (usuario, agente, modelo,
+  herramientas, gateway), las anclas como sellos y, si la verificación falla, la cadena dibujada rota desde el
+  primer eslabón alterado.
+- Cada acción se resume en una frase ("alice pidió enviar un correo, pero el destinatario lo puso mcp:issues") y
+  un sello de goma (INYECTADO, FIRMADO, NO VERIFICABLE, ALTERADA).
+- El detalle de una acción es un diagrama: de cada argumento sale un hilo hasta el fragmento del contexto donde
+  apareció.
+
 ## Stack
 
 React 19 + Vite 8, TypeScript 7 (el compilador nativo, para el chequeo de tipos) y SWC

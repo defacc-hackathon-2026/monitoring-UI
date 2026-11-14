@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Alert } from './api'
-import { ActionPanel } from './components/ActionPanel'
+import { ActionView } from './components/ActionView'
 import { AlertsFeed } from './components/AlertsFeed'
-import { SessionHeader, Timeline } from './components/SessionView'
+import { IconMoon, IconSun } from './components/Marks'
 import { SessionList } from './components/SessionList'
-import { cx } from './lib/format'
+import { SessionHeader, Timeline } from './components/SessionView'
+import { caseNo, cx } from './lib/format'
 import { useMonitor, type Conn } from './store'
 
-// Ruta en el hash para poder compartir un enlace a una acción: #/s/<sid>/a/<seq>
+// Ruta en el hash para compartir un enlace a una acción: #/s/<sid>/a/<seq>
 function parseHash(): { sid: string | null; seq: number | null } {
   const m = location.hash.match(/^#\/s\/([^/]+)(?:\/a\/(\d+))?/)
   return { sid: m?.[1] ?? null, seq: m?.[2] ? Number(m[2]) : null }
@@ -35,17 +36,41 @@ function useNow(ms = 1000) {
   return now
 }
 
-const CONN: Record<Conn, { text: string; cls: string }> = {
-  connecting: { text: 'conectando', cls: 'bg-zinc-400' },
-  live: { text: 'en vivo', cls: 'bg-emerald-500' },
-  reconnecting: { text: 'reconectando', cls: 'bg-amber-500 animate-pulse' },
-  error: { text: 'sin conexión con owit monitor', cls: 'bg-red-600' },
+function useTheme() {
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? 'light')
+  const toggle = useCallback(() => {
+    const t = theme === 'dark' ? 'light' : 'dark'
+    document.documentElement.dataset.theme = t
+    try {
+      localStorage.setItem('owit-theme', t)
+    } catch {
+      /* sin almacenamiento: el tema dura lo que la pestaña */
+    }
+    setTheme(t)
+  }, [theme])
+  return { theme, toggle }
+}
+
+const CONN: Record<Conn, { text: string; tone: string }> = {
+  connecting: { text: 'conectando', tone: 'text-ink-3' },
+  live: { text: '● en vivo', tone: 'text-seal' },
+  reconnecting: { text: '○ reconectando', tone: 'text-ochre animate-pulse' },
+  error: { text: '○ sin conexión con owit monitor', tone: 'text-red' },
 }
 
 export default function App() {
   const { state, openSession, reloadAll } = useMonitor()
   const { sid, seq, go } = useRoute()
   const now = useNow()
+  const { theme, toggle } = useTheme()
+
+  // número de expediente estable: orden de llegada
+  const numbers = useMemo(() => {
+    const byStart = Object.values(state.sessions).sort((a, b) =>
+      (a.first_ts ?? '').localeCompare(b.first_ts ?? '') || a.sid.localeCompare(b.sid),
+    )
+    return Object.fromEntries(byStart.map((s, i) => [s.sid, i + 1]))
+  }, [state.sessions])
 
   const sessions = useMemo(
     () =>
@@ -62,7 +87,6 @@ export default function App() {
     if (sid && !state.entries[sid]) void openSession(sid)
   }, [sid, state.entries, openSession])
 
-  // sin selección: abre la sesión más reciente
   useEffect(() => {
     if (!sid && sessions.length) go(sessions[0].sid)
   }, [sid, sessions, go])
@@ -71,64 +95,68 @@ export default function App() {
   const entries = sid ? state.entries[sid] : undefined
   const actionVersion = JSON.stringify(entries?.find((e) => e.seq === seq)?.verdict ?? null)
   const failing = sessions.filter((s) => s.integrity.status === 'fail').length
+  const injected = sessions.reduce((n, s) => n + (s.verdicts.TOOL_INJECTED ?? 0), 0)
 
   const openAlert = (a: Alert) => {
-    const isAction = entries !== undefined && a.sid === sid
-    go(a.sid, a.type === 'tool_injected' || (isAction && a.type === 'anomaly') ? a.seq : null)
+    const isAction = a.type === 'tool_injected' || a.type === 'anomaly'
+    go(a.sid, isAction ? a.seq : null)
   }
 
   const jump = (target: number) => {
-    document.getElementById(`e-${target}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    if (sid) go(sid)
+    setTimeout(() => document.getElementById(`e-${target}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
-        <div className="flex items-baseline gap-2">
-          <span className="text-base font-bold tracking-tight">Open Witness</span>
-          <span className="text-sm text-zinc-500">monitor</span>
+    <div className="flex h-dvh flex-col bg-paper text-ink">
+      <header className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-ink px-6 pt-4 pb-3">
+        <div className="flex items-baseline gap-3">
+          <span className="text-[26px] leading-none font-semibold tracking-tight">Open Witness</span>
+          <span className="label text-ink-3">monitor · solo lectura</span>
         </div>
-        <span className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
-          <span className={cx('size-2 rounded-full', CONN[state.conn].cls)} />
-          {CONN[state.conn].text}
+        <span className={cx('label', CONN[state.conn].tone)}>{CONN[state.conn].text}</span>
+        <span className="font-mono text-[11px] text-ink-3">
+          {sessions.length} expedientes
+          {injected > 0 && <span className="text-red"> · {injected} acciones inyectadas</span>}
+          {failing > 0 && <span className="font-semibold text-red"> · {failing} bitácora{failing > 1 ? 's' : ''} alterada{failing > 1 ? 's' : ''}</span>}
         </span>
-        <span className="text-xs text-zinc-500">
-          {sessions.length} sesiones
-          {failing > 0 && <span className="ml-1 font-semibold text-red-600">· {failing} con la bitácora en FALLA</span>}
-        </span>
-        <div className="ml-auto flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-          {state.health?.no_content && (
-            <span className="rounded bg-zinc-200 px-1.5 py-0.5 font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-              sin contenido
-            </span>
-          )}
+        <div className="ml-auto flex items-center gap-4">
+          {state.health?.no_content && <span className="label text-ochre">sin contenido</span>}
           {state.health && (
-            <span title={state.health.data}>
-              solo lectura · llave del gateway: {state.health.pubkey_source}
+            <span className="label hidden text-ink-3 normal-case xl:inline" title={state.health.data}>
+              llave del gateway: {state.health.pubkey_source}
             </span>
           )}
+          <button
+            onClick={toggle}
+            className="p-1 text-ink-3 hover:text-ink"
+            title={theme === 'dark' ? 'papel' : 'carbón'}
+            aria-label="cambiar tema"
+          >
+            {theme === 'dark' ? <IconSun /> : <IconMoon />}
+          </button>
         </div>
       </header>
       {state.error && (
-        <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-1.5 text-xs text-red-700 dark:text-red-300">
-          {state.error}
-        </div>
+        <div className="border-b border-red/40 bg-red/10 px-6 py-1.5 font-mono text-xs text-red">{state.error}</div>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)_21rem] 2xl:grid-cols-[19rem_minmax(0,1fr)_26rem]">
-        <nav className="min-h-0 overflow-y-auto border-r border-zinc-200 dark:border-zinc-800">
-          <div className="px-4 pt-3 pb-1 text-xs font-semibold tracking-wide text-zinc-500 uppercase">Sesiones</div>
-          <SessionList sessions={sessions} selected={sid} onSelect={(s) => go(s)} now={now} />
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[17rem_minmax(0,1fr)_21rem] 2xl:grid-cols-[19rem_minmax(0,1fr)_25rem]">
+        <nav className="min-h-0 overflow-y-auto border-r border-rule">
+          <h2 className="label px-5 pt-5 pb-2 text-ink-3">expedientes</h2>
+          <SessionList sessions={sessions} numbers={numbers} selected={sid} onSelect={(s) => go(s)} now={now} />
         </nav>
 
         <main className="flex min-h-0 flex-col">
           {current ? (
             <>
-              <SessionHeader s={current} onVerified={reloadAll} />
+              <SessionHeader s={current} number={numbers[current.sid] ?? 0} onVerified={reloadAll} />
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <Timeline
                   sid={current.sid}
+                  user={current.user}
                   entries={entries}
+                  firstErrorSeq={current.integrity.status === 'fail' ? (current.integrity.first_error_seq ?? 0) : null}
                   fresh={state.fresh}
                   now={now}
                   selectedSeq={seq}
@@ -137,22 +165,27 @@ export default function App() {
               </div>
             </>
           ) : (
-            <div className="grid h-full place-items-center p-8 text-sm text-zinc-500">
-              {state.conn === 'error'
-                ? 'No se pudo conectar. ¿Está corriendo `owit monitor`?'
-                : 'Elige una sesión para ver su línea de tiempo.'}
+            <div className="grid h-full place-items-center p-8 text-lg text-ink-3 italic">
+              {state.conn === 'error' ? '¿Está corriendo owit monitor?' : 'Elige un expediente.'}
             </div>
           )}
         </main>
 
-        <div className="min-h-0 border-l border-zinc-200 dark:border-zinc-800">
-          {sid && seq !== null ? (
-            <ActionPanel sid={sid} seq={seq} version={actionVersion} onClose={() => go(sid)} onJump={jump} />
-          ) : (
-            <AlertsFeed alerts={alerts} sessions={state.sessions} now={now} onOpen={openAlert} />
-          )}
-        </div>
+        <aside className="min-h-0 border-l border-rule">
+          <AlertsFeed alerts={alerts} sessions={state.sessions} numbers={numbers} now={now} onOpen={openAlert} />
+        </aside>
       </div>
+
+      {sid && seq !== null && (
+        <ActionView
+          sid={sid}
+          seq={seq}
+          caseLabel={caseNo(numbers[sid] ?? 0)}
+          version={actionVersion}
+          onClose={() => go(sid)}
+          onJump={jump}
+        />
+      )}
     </div>
   )
 }

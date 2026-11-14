@@ -69,6 +69,7 @@ export interface Entry {
   blob: 'present' | 'missing' | 'mismatch' | null
   summary: string
   fragment: string | null
+  args: Record<string, unknown> | null // solo en tool_call y si el monitor muestra contenido
   meta: Record<string, unknown>
   verdict: VerdictLite | null
 }
